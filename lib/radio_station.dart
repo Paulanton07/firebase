@@ -1,8 +1,9 @@
 class RadioStation {
+  String? id;
   String name;
   final String url;
 
-  RadioStation({required this.name, required this.url});
+  RadioStation({this.id, required this.name, required this.url});
 
   // Method to convert a RadioStation instance to a map
   Map<String, dynamic> toJson() {
@@ -13,8 +14,9 @@ class RadioStation {
   }
 
   // Factory constructor to create a RadioStation instance from a map
-  factory RadioStation.fromJson(Map<String, dynamic> json) {
+  factory RadioStation.fromJson(Map<String, dynamic> json, {String? id}) {
     return RadioStation(
+      id: id,
       name: json['name'],
       url: json['url'],
     );

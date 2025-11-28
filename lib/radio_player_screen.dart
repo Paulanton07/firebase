@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'radio_provider.dart';
 import 'radio_station.dart';
+import 'auth_service.dart';
 
 class RadioPlayerScreen extends StatefulWidget {
   const RadioPlayerScreen({super.key});
@@ -44,6 +45,11 @@ class _RadioPlayerScreenState extends State<RadioPlayerScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () => AuthService().signOut(),
+          ),
           IconButton(
             icon: const Icon(Icons.list_alt),
             tooltip: 'Manage Stations',

@@ -4,6 +4,8 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'radio_station.dart';
 
 class RadioProvider with ChangeNotifier {
@@ -24,6 +26,9 @@ class RadioProvider with ChangeNotifier {
 
   RadioProvider() {
     _setupListeners();
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      _loadStations();
+    });
   }
 
   Future<void> init() async {
@@ -68,27 +73,58 @@ class RadioProvider with ChangeNotifier {
   }
 
   Future<void> _loadStations() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stationStrings = prefs.getStringList(_stationsKey);
-    if (stationStrings != null && stationStrings.isNotEmpty) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
       try {
-        _stations = stationStrings
-          .map((s) => RadioStation.fromJson(jsonDecode(s)))
-          .toList();
+        final snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('stations')
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          _stations = snapshot.docs
+              .map((doc) => RadioStation.fromJson(doc.data(), id: doc.id))
+              .toList();
+        } else {
+          _stations = [
+            RadioStation(name: 'BBC Radio 1', url: 'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one')
+          ];
+        }
       } catch (e) {
-        _stations = [ RadioStation(name: 'BBC Radio 1', url: 'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one') ];
+        developer.log('Error loading stations from Firestore', error: e);
       }
     } else {
-        _stations = [ RadioStation(name: 'BBC Radio 1', url: 'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one') ];
+      final prefs = await SharedPreferences.getInstance();
+      final stationStrings = prefs.getStringList(_stationsKey);
+      if (stationStrings != null && stationStrings.isNotEmpty) {
+        try {
+          _stations = stationStrings
+              .map((s) => RadioStation.fromJson(jsonDecode(s)))
+              .toList();
+        } catch (e) {
+          _stations = [
+            RadioStation(name: 'BBC Radio 1', url: 'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one')
+          ];
+        }
+      } else {
+        _stations = [
+          RadioStation(name: 'BBC Radio 1', url: 'https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one')
+        ];
+      }
     }
     notifyListeners();
+    _rebuildAudioSource();
   }
 
   Future<void> _saveStations() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stationStrings =
-        _stations.map((s) => jsonEncode(s.toJson())).toList();
-    await prefs.setStringList(_stationsKey, stationStrings);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      final prefs = await SharedPreferences.getInstance();
+      final stationStrings =
+          _stations.map((s) => jsonEncode(s.toJson())).toList();
+      await prefs.setStringList(_stationsKey, stationStrings);
+    }
   }
 
   // Plays the station at the currently selected index
@@ -120,6 +156,15 @@ class RadioProvider with ChangeNotifier {
   }
 
   Future<void> addRadioStation(RadioStation station) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('stations')
+          .add(station.toJson());
+      station.id = docRef.id;
+    }
     _stations.add(station);
     await _saveStations();
     await _rebuildAudioSource();
@@ -130,6 +175,15 @@ class RadioProvider with ChangeNotifier {
   Future<void> updateRadioStationName(int index, String name) async {
     if (index >= 0 && index < _stations.length) {
       _stations[index].name = name;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && _stations[index].id != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('stations')
+            .doc(_stations[index].id)
+            .update({'name': name});
+      }
       await _saveStations();
       notifyListeners();
     }
@@ -139,6 +193,17 @@ class RadioProvider with ChangeNotifier {
     if (index >= 0 && index < _stations.length) {
       final wasPlaying = _isPlaying;
       final deletedCurrent = index == _selectedIndex;
+      final station = _stations[index];
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && station.id != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('stations')
+            .doc(station.id)
+            .delete();
+      }
 
       _stations.removeAt(index);
       

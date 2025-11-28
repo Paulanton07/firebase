@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'radio_player_screen.dart';
 import 'radio_provider.dart';
-import 'voice_messaging_page.dart';
+import 'user_list_screen.dart';
+import 'auth_service.dart';
+import 'login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -160,7 +163,20 @@ class MyApp extends StatelessWidget {
       darkTheme: themes[themeProvider.appTheme],
       themeMode: themeProvider.themeMode,
       debugShowCheckedModeBanner: false,
-      home: const MainScreen(),
+      home: StreamBuilder<User?>(
+        stream: AuthService().authStateChanges,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasData) {
+            return const MainScreen();
+          }
+          return const LoginScreen();
+        },
+      ),
     );
   }
 }
@@ -176,7 +192,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   static const List<Widget> _widgetOptions = <Widget>[
     RadioPlayerScreen(),
-    VoiceMessagingPage(),
+    UserListScreen(),
   ];
 
   void _onItemTapped(int index) {

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
@@ -89,10 +90,13 @@ class _VoiceMessagingPageState extends State<VoiceMessagingPage> {
 
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
+      final user = FirebaseAuth.instance.currentUser;
 
       await FirebaseFirestore.instance.collection('voice_messages').add({
         'url': downloadUrl,
         'createdAt': FieldValue.serverTimestamp(),
+        'userId': user?.uid,
+        'userEmail': user?.email,
       });
 
       setState(() => _status = 'Voice message saved!');
@@ -144,12 +148,12 @@ class _VoiceMessagingPageState extends State<VoiceMessagingPage> {
                     final timestamp = doc['createdAt'] as Timestamp?;
                     final date = timestamp?.toDate();
                     final formattedDate = date != null ? DateFormat.yMMMd().add_jm().format(date) : '';
-
+                    final userEmail = (doc.data() as Map<String, dynamic>).containsKey('userEmail') ? doc['userEmail'] : 'Anonymous';
 
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: ListTile(
-                        title: Text('Voice Message ${index + 1}'),
+                        title: Text(userEmail ?? 'Unknown User'),
                         subtitle: Text(formattedDate),
                         leading: IconButton(
                           icon: const Icon(Icons.play_arrow),
