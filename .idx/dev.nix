@@ -10,6 +10,8 @@
     pkgs.jdk21
     pkgs.unzip
     pkgs.google-chrome
+    pkgs.git
+    pkgs.openssh
   ];
   # Sets environment variables in the workspace
   env = {};
