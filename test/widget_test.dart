@@ -1,29 +1,64 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:myapp/main.dart';
+import 'package:myapp/radio_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
+
+// This is the recommended way to mock Firebase for tests.
+// It uses a mock handler for the Firebase core channel.
+void setupFirebaseCoreMocks() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  
+  // Create a mock handler for the MethodChannel
+  Future<Object?> handler(MethodCall call) async {
+    if (call.method == 'Firebase#initializeApp') {
+      return {
+        'name': call.arguments['appName'],
+        'options': call.arguments['options'],
+        'pluginConstants': {},
+      };
+    }
+    if (call.method == 'Firebase#initializeCore') {
+      return [
+        {
+          'name': defaultFirebaseAppName,
+          'options': {
+            'apiKey': '123',
+            'appId': '123',
+            'messagingSenderId': '123',
+            'projectId': '123',
+          },
+          'pluginConstants': {},
+        }
+      ];
+    }
+    return null;
+  }
+
+  // Set the mock handler on the channel
+  const MethodChannel('plugins.flutter.io/firebase_core')
+      .setMockMethodCallHandler(handler);
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setupFirebaseCoreMocks();
 
-    // Verify that our counter starts at 0.
+  setUpAll(() async {
+    await Firebase.initializeApp();
+  });
+
+  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    final radioProvider = RadioProvider();
+    await radioProvider.init();
+    await tester.pumpWidget(MyApp(radioProvider: radioProvider));
+
     expect(find.text('0'), findsOneWidget);
     expect(find.text('1'), findsNothing);
 
-    // Tap the '+' icon and trigger a frame.
     await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
 
-    // Verify that our counter has incremented.
     expect(find.text('0'), findsNothing);
     expect(find.text('1'), findsOneWidget);
   });

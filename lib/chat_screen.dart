@@ -1,16 +1,18 @@
-
 import 'dart:async';
+import 'dart:developer';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:intl/intl.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class ChatScreen extends StatefulWidget {
   final String targetUid;
@@ -35,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isRecording = false;
   String _status = '';
   late String _chatId;
+  final Map<String, bool> _isTranscribing = {};
 
   @override
   void initState() {
@@ -81,13 +84,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _stopRecording() async {
     try {
-      final dynamic audioData = await _audioRecorder.stop();
+      final audioData = await _audioRecorder.stop();
       setState(() {
         _isRecording = false;
         _status = 'Recording stopped, uploading...';
       });
-      if (kIsWeb) {
-        _audioBytes = audioData;
+      if (kIsWeb && audioData != null) {
+        final response = await http.get(Uri.parse(audioData));
+        _audioBytes = response.bodyBytes;
+      } else {
+        _audioPath = audioData;
       }
       await _uploadAndSave();
     } catch (e) {
@@ -97,7 +103,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _uploadAndSave() async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-    final storageRef = FirebaseStorage.instance.ref().child('chats/$_chatId/$fileName.m4a');
+    final storageRef =
+        FirebaseStorage.instance.ref().child('chats/$_chatId/$fileName.m4a');
 
     try {
       UploadTask uploadTask;
@@ -139,6 +146,42 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() => _status = 'Error playing audio: $e');
     }
   }
+
+  Future<void> _transcribeVoiceMessage(String messageId, String audioUrl) async {
+    setState(() {
+      _isTranscribing[messageId] = true;
+      _status = 'Transcribing...';
+    });
+    try {
+      final gcsUri = 'gs://${FirebaseStorage.instance.refFromURL(audioUrl).bucket}/${FirebaseStorage.instance.refFromURL(audioUrl).fullPath}';
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('transcribeAudio');
+      final result = await callable.call<Map<String, dynamic>>({
+        'gcsUri': gcsUri,
+        'chatId': _chatId,
+        'messageId': messageId,
+      });
+
+      final transcription = result.data['transcription'] as String?;
+
+      if (transcription != null && transcription.isNotEmpty) {
+        _status = 'Transcription successful!';
+      } else {
+        _status = 'Transcription failed or returned empty.';
+      }
+      setState(() {});
+    } catch (e, s) {
+      log(
+        'Error transcribing audio',
+        name: 'myapp.chat',
+        error: e,
+        stackTrace: s,
+      );
+      setState(() => _status = 'Error transcribing audio: $e');
+    } finally {
+      setState(() => _isTranscribing.remove(messageId));
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -182,19 +225,23 @@ class _ChatScreenState extends State<ChatScreen> {
                     final isMe = data['senderId'] == currentUser?.uid;
                     final timestamp = data['createdAt'] as Timestamp?;
                     final date = timestamp?.toDate();
-                    final formattedDate = date != null
-                        ? DateFormat.jm().format(date)
-                        : '';
+                    final formattedDate =
+                        date != null ? DateFormat.jm().format(date) : '';
 
                     return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isMe
                               ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(context).colorScheme.surfaceContainerHighest,
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -210,10 +257,35 @@ class _ChatScreenState extends State<ChatScreen> {
                                     onPressed: () => _play(data['url']),
                                   ),
                                   const Text('Voice Message'),
+                                  if (_isTranscribing[doc.id] == true)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      ),
+                                    )
+                                  else if (data['transcription'] == null)
+                                    IconButton(
+                                      icon: const Icon(Icons.transcribe),
+                                      onPressed: () => _transcribeVoiceMessage(
+                                          doc.id, data['url']),
+                                    )
                                 ],
                               )
                             else
                               Text(data['text'] ?? ''),
+                            if (data['transcription'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  data['transcription'],
+                                  style:
+                                      const TextStyle(fontStyle: FontStyle.italic),
+                                ),
+                              ),
                             const SizedBox(height: 4),
                             Text(
                               formattedDate,
@@ -239,7 +311,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Container(
                       height: 50,
                       decoration: BoxDecoration(
-                        color: _isRecording ? Colors.red : Theme.of(context).colorScheme.primary,
+                        color: _isRecording
+                            ? Colors.red
+                            : Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(25),
                       ),
                       child: Center(

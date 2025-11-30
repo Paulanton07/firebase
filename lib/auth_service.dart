@@ -1,4 +1,3 @@
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -13,13 +12,17 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Sign in with email and password
-  Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
-    return await _auth.signInWithEmailAndPassword(email: email, password: password);
+  Future<UserCredential> signInWithEmailAndPassword(
+      String email, String password) async {
+    return await _auth.signInWithEmailAndPassword(
+        email: email, password: password);
   }
 
   // Register with email and password
-  Future<UserCredential> createUserWithEmailAndPassword(String email, String password) async {
-    final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+  Future<UserCredential> createUserWithEmailAndPassword(
+      String email, String password) async {
+    final credential = await _auth.createUserWithEmailAndPassword(
+        email: email, password: password);
     if (credential.user != null) {
       await _saveUserToFirestore(credential.user!);
     }

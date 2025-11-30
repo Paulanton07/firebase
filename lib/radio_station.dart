@@ -1,24 +1,51 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class RadioStation {
   String? id;
   String name;
-  final String url;
+  final String streamUrl;
+  final String imageUrl;
 
-  RadioStation({this.id, required this.name, required this.url});
+  RadioStation({
+    this.id,
+    required this.name,
+    required this.streamUrl,
+    required this.imageUrl,
+  });
 
-  // Method to convert a RadioStation instance to a map
-  Map<String, dynamic> toJson() {
+  factory RadioStation.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return RadioStation(
+      id: doc.id,
+      name: data['name'] ?? '',
+      streamUrl: data['streamUrl'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'name': name,
-      'url': url,
+      'streamUrl': streamUrl,
+      'imageUrl': imageUrl,
     };
   }
 
-  // Factory constructor to create a RadioStation instance from a map
-  factory RadioStation.fromJson(Map<String, dynamic> json, {String? id}) {
+  factory RadioStation.fromJson(Map<String, dynamic> json) {
     return RadioStation(
-      id: id,
+      id: json['id'],
       name: json['name'],
-      url: json['url'],
+      streamUrl: json['streamUrl'],
+      imageUrl: json['imageUrl'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'streamUrl': streamUrl,
+      'imageUrl': imageUrl,
+    };
   }
 }

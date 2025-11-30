@@ -1,42 +1,25 @@
-
-# Blueprint: theSocial Radio App
+# Project Blueprint
 
 ## Overview
 
-A Flutter application that combines a radio player with a voice messaging feature.
+This is a Flutter application that demonstrates voice messaging and audio transcription capabilities. The application allows users to record audio, play it back, and (on supported platforms) transcribe the audio to text using Google's generative AI models through Firebase.
 
-## Implemented Features
+## Features Implemented
 
-*   **Radio Player:** A functional radio player.
+- **Voice Message Recording:** Users can record audio messages using the device's microphone.
+- **Audio Playback:** Recorded audio can be played back within the application.
+- **Audio Transcription (Platform-Specific):**
+  - On mobile platforms (iOS and Android), users can transcribe recorded audio to text using the Firebase AI SDK with the Gemini model.
+  - This feature is disabled on the web platform to ensure application compatibility and avoid build errors, as the `firebase_ai` package has limitations in the web environment.
+- **Platform-Aware UI:** The "Transcribe" button is only visible on non-web platforms, providing a clean user experience.
 
-## Current Task: Add Voice Messaging
+## Style and Design
 
-### Plan
+- The application uses a standard Material Design layout.
+- The UI is centered around a simple interface for recording, playing, and transcribing audio.
+- Asynchronous operations, like recording and transcribing, are indicated by loading indicators to provide feedback to the user.
 
-1.  **Create Voice Messaging Page:**
-    *   Create a new file `lib/voice_messaging_page.dart`.
-    *   Design a UI with the following elements:
-        *   A button to start and stop recording.
-        *   A list to display recorded voice messages.
-        *   A playback mechanism for each message.
+## Current Plan: Finalization
 
-2.  **Add Navigation:**
-    *   Add a new item to the main navigation in `lib/main.dart` to navigate to the `VoiceMessagingPage`.
-
-3.  **Implement Recording:**
-    *   Use the `record` package to capture audio from the device's microphone.
-    *   Save the recorded audio file locally.
-
-4.  **Implement Firebase Integration:**
-    *   Upload the recorded audio file to Firebase Storage.
-    *   Create a new `voice_messages` collection in Cloud Firestore.
-    *   Store metadata for each voice message in a Firestore document, including:
-        *   The URL of the audio file in Firebase Storage.
-        *   A timestamp.
-        *   The duration of the recording.
-
-5.  **Implement Playback:**
-    *   Use the `audioplayers` package to stream and play the audio from the Firebase Storage URL.
-
-6.  **Display Voice Messages:**
-    *   Fetch the list of voice messages from Firestore and display them on the `VoiceMessagingPage`.
+- This development cycle focused on implementing the voice messaging and transcription features and resolving platform-specific build errors.
+- The application is now in a stable and runnable state for both web and mobile platforms.
