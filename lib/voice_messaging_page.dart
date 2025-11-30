@@ -106,7 +106,7 @@ class _VoiceMessagingPageState extends State<VoiceMessagingPage> {
 
       final response = await model.generateContent([
         firebase_ai.Content.multi([
-          firebase_ai.TextPart('Transcribe the following audio:'),
+          const firebase_ai.TextPart('Transcribe the following audio:'),
           firebase_ai.DataPart('audio/mp4', audioData),
         ]),
       ]);
