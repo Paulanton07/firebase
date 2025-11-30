@@ -1,13 +1,16 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:firebase_ai/firebase_ai.dart' as firebase_ai;
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
-import 'services/audio_recorder_service.dart';
-import 'services/audio_player_service.dart';
-import 'services/audio_data_service.dart';
-import 'widgets/chat_bubble.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 
 class VoiceMessagingPage extends StatefulWidget {
   const VoiceMessagingPage({super.key});
@@ -17,132 +20,159 @@ class VoiceMessagingPage extends StatefulWidget {
 }
 
 class _VoiceMessagingPageState extends State<VoiceMessagingPage> {
-  final AudioRecorderService _recorderService = AudioRecorderService();
-  final AudioPlayerService _playerService = AudioPlayerService();
-  final AudioDataService _audioDataService = AudioDataService();
-  final List<VoiceMessage> _messages = [];
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _audioPath;
+  Uint8List? _audioBytes; // Web capture
   bool _isRecording = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _recorderService.init();
-  }
+  String _status = '';
 
   @override
   void dispose() {
-    _recorderService.dispose();
-    _playerService.dispose();
+    _audioRecorder.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   Future<void> _startRecording() async {
     try {
-      if (kIsWeb) {
-        await _recorderService.startRecording();
+      if (await _audioRecorder.hasPermission()) {
+        setState(() => _status = 'Recording...');
+        const recordConfig = RecordConfig(encoder: AudioEncoder.aacLc);
+        if (kIsWeb) {
+          await _audioRecorder.start(recordConfig, path: '');
+        } else {
+          final directory = await getApplicationDocumentsDirectory();
+          final path = '${directory.path}/temp_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          await _audioRecorder.start(recordConfig, path: path);
+          _audioPath = path;
+        }
+        setState(() => _isRecording = true);
       } else {
-        final directory = await getApplicationDocumentsDirectory();
-        final path =
-            '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.m4a';
-        await _recorderService.startRecording(path: path);
+        setState(() => _status = 'Microphone permission denied');
       }
-      setState(() {
-        _isRecording = true;
-      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to start recording: $e')),
-      );
+      setState(() => _status = 'Error starting recording: $e');
     }
   }
 
   Future<void> _stopRecording() async {
     try {
-      final String? path = await _recorderService.stopRecording();
+      final dynamic audioData = await _audioRecorder.stop();
       setState(() {
         _isRecording = false;
+        _status = 'Uploading...';
       });
-      if (path != null) {
-        final newMessage = VoiceMessage(audioPath: path);
-        setState(() {
-          _messages.add(newMessage);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Recording saved')),
-          );
-        }
+      if (kIsWeb) {
+        _audioBytes = audioData;
       }
+      await _uploadAndSave();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to stop recording: $e')),
-      );
+      setState(() => _status = 'Error stopping recording: $e');
     }
   }
 
-  Future<void> _playMessage(VoiceMessage message) async {
-    if (_playerService.isPlaying) {
-      await _playerService.stop();
-    } else {
-      await _playerService.play(message.audioPath);
-    }
-  }
-
-  Future<void> _transcribeMessage(VoiceMessage message) async {
-    if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transcription is not available on web')),
-      );
+  Future<void> _uploadAndSave() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => _status = 'Not authenticated');
       return;
     }
-    setState(() {
-      message.isTranscribing = true;
-    });
-
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = FirebaseStorage.instance.ref().child('voice_messages/$fileName.m4a');
     try {
-      final model = firebase_ai.FirebaseVertexAI.instance
-          .generativeModel(model: 'gemini-1.5-flash');
-      final audioData = await _audioDataService.getAudioData(message.audioPath);
-
-      final response = await model.generateContent([
-        firebase_ai.Content.multi([
-          firebase_ai.TextPart('Transcribe the following audio:'),
-          firebase_ai.DataPart('audio/mp4', audioData),
-        ]),
-      ]);
-
-      setState(() {
-        message.transcription = response.text;
-        message.isTranscribing = false;
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        if (_audioBytes == null) {
+          setState(() => _status = 'No audio data');
+          return;
+        }
+        uploadTask = ref.putData(_audioBytes!);
+      } else {
+        if (_audioPath == null) {
+          setState(() => _status = 'No file path');
+          return;
+        }
+        uploadTask = ref.putFile(File(_audioPath!));
+      }
+      final snap = await uploadTask;
+      final url = await snap.ref.getDownloadURL();
+      await FirebaseFirestore.instance.collection('voice_messages').add({
+        'url': url,
+        'userId': user.uid,
+        'userEmail': user.email,
+        'createdAt': FieldValue.serverTimestamp(),
       });
+      setState(() => _status = 'Saved');
     } catch (e) {
-      setState(() {
-        message.isTranscribing = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error transcribing audio: $e')),
-      );
+      setState(() => _status = 'Upload failed: $e');
+    }
+  }
+
+  Future<void> _play(String url) async {
+    try {
+      setState(() => _status = 'Playing...');
+      await _audioPlayer.play(UrlSource(url));
+      _audioPlayer.onPlayerComplete.first.then((_) => setState(() => _status = 'Finished'));
+    } catch (e) {
+      setState(() => _status = 'Play error: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Voice Messages'),
-      ),
-      body: ListView.builder(
-        itemCount: _messages.length,
-        itemBuilder: (context, index) {
-          final message = _messages[index];
-          return ChatBubble(
-            message: message,
-            onPlay: () => _playMessage(message),
-            audioPlayerService: _playerService,
-            onTranscribe: () => _transcribeMessage(message),
-            showTranscribeButton: !kIsWeb,
-          );
-        },
+      appBar: AppBar(title: const Text('Voice Messages')),
+      body: Column(
+        children: [
+          if (_status.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(_status, style: Theme.of(context).textTheme.labelMedium),
+            ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('voice_messages')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final docs = snapshot.data!.docs;
+                if (docs.isEmpty) {
+                  return const Center(child: Text('No voice messages yet'));
+                }
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    final url = data['url'] as String?;
+                    final email = data['userEmail'] as String? ?? 'Unknown';
+                    final ts = data['createdAt'] as Timestamp?;
+                    final dt = ts?.toDate();
+                    final when = dt != null ? DateFormat.yMMMd().add_jm().format(dt) : '';
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: ListTile(
+                        leading: IconButton(
+                          icon: const Icon(Icons.play_arrow),
+                          onPressed: url == null ? null : () => _play(url),
+                        ),
+                        title: Text(email),
+                        subtitle: Text(when),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _isRecording ? _stopRecording : _startRecording,
@@ -150,16 +180,4 @@ class _VoiceMessagingPageState extends State<VoiceMessagingPage> {
       ),
     );
   }
-}
-
-class VoiceMessage {
-  final String audioPath;
-  String? transcription;
-  bool isTranscribing;
-
-  VoiceMessage({
-    required this.audioPath,
-    this.transcription,
-    this.isTranscribing = false,
-  });
 }
