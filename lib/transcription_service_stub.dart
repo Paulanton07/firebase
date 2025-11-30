@@ -1,4 +1,5 @@
+import 'dart:async';
 
-Future<String> transcribeAudio(String audioPath) async {
-  return Future.value('Transcription is not available on the web.');
+Future<String> transcribeAudio(String path) async {
+  throw UnimplementedError('transcribeAudio has not been implemented');
 }

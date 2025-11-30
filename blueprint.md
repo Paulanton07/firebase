@@ -2,24 +2,25 @@
 
 ## Overview
 
-This is a Flutter application that demonstrates voice messaging and audio transcription capabilities. The application allows users to record audio, play it back, and (on supported platforms) transcribe the audio to text using Google's generative AI models through Firebase.
+This is a Flutter application that allows users to record and play back voice messages, and also includes a radio page. The application is designed to be simple and intuitive, with a clean user interface. It is a mobile-responsive app that works on both mobile and web.
 
-## Features Implemented
+## Features
 
-- **Voice Message Recording:** Users can record audio messages using the device's microphone.
-- **Audio Playback:** Recorded audio can be played back within the application.
-- **Audio Transcription (Platform-Specific):**
-  - On mobile platforms (iOS and Android), users can transcribe recorded audio to text using the Firebase AI SDK with the Gemini model.
-  - This feature is disabled on the web platform to ensure application compatibility and avoid build errors, as the `firebase_ai` package has limitations in the web environment.
-- **Platform-Aware UI:** The "Transcribe" button is only visible on non-web platforms, providing a clean user experience.
+*   **Voice Message Recording:** Users can record voice messages using the device's microphone on both mobile and web.
+*   **Voice Message Playback:** Users can play back recorded voice messages.
+*   **Chat-like Interface:** Voice messages are displayed in a chat-like interface.
+*   **Voice Message Transcription:** Users can transcribe voice messages into text using the Gemini model through the Firebase AI SDK.
+*   **Radio Page:** A separate page for radio functionality.
+*   **Bottom Navigation:** A bottom navigation bar to switch between the voice messaging and radio pages.
 
 ## Style and Design
 
-- The application uses a standard Material Design layout.
-- The UI is centered around a simple interface for recording, playing, and transcribing audio.
-- Asynchronous operations, like recording and transcribing, are indicated by loading indicators to provide feedback to the user.
+*   **Theme:** The application uses the Material Design 3 theme.
+*   **Color Scheme:** The color scheme is based on a seed color of deep purple.
+*   **Typography:** The application uses the Oswald, Roboto, and Open Sans fonts from Google Fonts.
+*   **Component Theming:** The application uses custom themes for the app bar and elevated buttons.
+*   **Dark/Light Mode:** The application supports both light and dark themes, with a toggle to switch between them.
 
-## Current Plan: Finalization
+## Current Plan
 
-- This development cycle focused on implementing the voice messaging and transcription features and resolving platform-specific build errors.
-- The application is now in a stable and runnable state for both web and mobile platforms.
+*   **Implement Radio Functionality:** Add the actual radio features to the radio page.

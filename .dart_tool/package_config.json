@@ -284,6 +284,12 @@
       "languageVersion": "3.3"
     },
     {
+      "name": "just_audio",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/just_audio-0.10.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
       "name": "just_audio_platform_interface",
       "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/just_audio_platform_interface-4.6.0",
       "packageUri": "lib/",
@@ -411,9 +417,9 @@
     },
     {
       "name": "record",
-      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record-5.2.1",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record-6.1.2",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.5"
     },
     {
       "name": "record_android",
@@ -422,16 +428,22 @@
       "languageVersion": "3.5"
     },
     {
-      "name": "record_darwin",
-      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record_darwin-1.2.2",
+      "name": "record_ios",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record_ios-1.1.5",
       "packageUri": "lib/",
-      "languageVersion": "3.3"
+      "languageVersion": "3.5"
     },
     {
       "name": "record_linux",
-      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record_linux-0.7.2",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record_linux-1.2.1",
       "packageUri": "lib/",
-      "languageVersion": "3.3"
+      "languageVersion": "3.5"
+    },
+    {
+      "name": "record_macos",
+      "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/record_macos-1.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
     },
     {
       "name": "record_platform_interface",
