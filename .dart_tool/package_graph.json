@@ -1,14 +1,15 @@
 {
   "roots": [
-    "myapp"
+    "flutter_voice_messenger"
   ],
   "packages": [
     {
-      "name": "myapp",
+      "name": "flutter_voice_messenger",
       "version": "1.0.0+1",
       "dependencies": [
         "audio_session",
         "audioplayers",
+        "card_swiper",
         "carousel_slider",
         "cloud_firestore",
         "cloud_functions_web",
@@ -28,6 +29,7 @@
         "path_provider",
         "provider",
         "record",
+        "salomon_bottom_bar",
         "shared_preferences",
         "url_launcher"
       ],
@@ -62,6 +64,20 @@
       ]
     },
     {
+      "name": "salomon_bottom_bar",
+      "version": "3.3.2",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "carousel_slider",
+      "version": "5.1.1",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
       "name": "firebase_ai",
       "version": "3.6.0",
       "dependencies": [
@@ -91,13 +107,6 @@
         "rxdart",
         "synchronized",
         "uuid"
-      ]
-    },
-    {
-      "name": "carousel_slider",
-      "version": "5.1.1",
-      "dependencies": [
-        "flutter"
       ]
     },
     {
@@ -259,6 +268,13 @@
       ]
     },
     {
+      "name": "card_swiper",
+      "version": "3.0.1",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
       "name": "path_provider",
       "version": "2.1.5",
       "dependencies": [
@@ -300,7 +316,7 @@
     },
     {
       "name": "google_fonts",
-      "version": "6.3.2",
+      "version": "6.3.3",
       "dependencies": [
         "crypto",
         "flutter",
@@ -794,7 +810,7 @@
     },
     {
       "name": "shared_preferences_android",
-      "version": "2.4.17",
+      "version": "2.4.18",
       "dependencies": [
         "flutter",
         "shared_preferences_platform_interface"
@@ -1033,7 +1049,7 @@
     },
     {
       "name": "vm_service",
-      "version": "14.3.1",
+      "version": "15.0.2",
       "dependencies": []
     }
   ],

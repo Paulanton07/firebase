@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,14 +12,14 @@
     For more details, see:
     https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
   -->
-  <base href="$FLUTTER_BASE_HREF">
+  <base href="/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="myapp">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -27,9 +28,24 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>myapp</title>
-  <link rel="manifest" href="manifest.json">
+  <!-- <link rel="manifest" href="manifest.json"> -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 </head>
 <body>
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyCryweYEwY-8TmS2sTmmPLftd4aMzbimyU",
+      authDomain: "thesocial-radio-app.firebaseapp.com",
+      projectId: "thesocial-radio-app",
+      storageBucket: "thesocial-radio-app.appspot.com",
+      messagingSenderId: "1013647702646",
+      appId: "1:1013647702646:web:ceb91b094c1d2ca6ef3d57"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
   <script src="flutter_bootstrap.js" async=""></script>
 </body>
 </html>

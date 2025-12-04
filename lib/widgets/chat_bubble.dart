@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../models/voice_message.dart';
 import '../services/audio_player_service.dart';
-import '../voice_messaging_page.dart';
 
 class ChatBubble extends StatelessWidget {
   final VoiceMessage message;
